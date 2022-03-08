@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script src='./tank.js'></script>
+<style>
+    canvas{
+        margin: 20px 500px;
+        border: 1px solid #000;
+        background-color: black;
+    }
+    .rule{
+        position: absolute;
+        margin-top: 570px;
+        margin-left: 500px;
+        font-size: 24px;
+    }
+    .herobu,.enemybu,.herohit,.enemyhit{
+        color:red;
+    }
+    img{
+        width: 30px;
+        height: 30px;
+    }
+</style>
+<body onkeyup="changeDirect()">
+    <div style="margin: 30px;font-size: 18px;margin-left: 500px;">
+        <p>控制方法：按下键盘w s a d或者↑ ↓ ← →分别是坦克的上下左右行驶<br/>按下空格或者Enter键为射击</p>
+    </div>
+    <div class="rule">
+        <span>每个坦克只有 50 发子弹。</span><br>
+        <span>hero坦克已发子弹：</span>
+        <span class="herobu">0</span>&nbsp;&nbsp;
+        <span>击中敌方坦克个数：</span>
+        <span class="herohit">0</span><br>
+        <span>enemy坦克已发子弹：</span>
+        <span class="enemybu">0</span>&nbsp;&nbsp;
+        <span>击中敌方坦克个数：</span>
+        <span class="enemyhit">0</span><br>
+    </div>
+    <img src="./Snipaste_2020-12-06_22-22-10.png" alt="">
+    <canvas class="mycanvas" width="540px" height="540px"></canvas>
+</body>
+    <script>
+        var img=document.querySelector("img");
+        var hb=document.querySelector(".herobu");
+        var eb=document.querySelector(".enemybu");
+        var hh=document.querySelector(".herohit");
+        var eh=document.querySelector(".enemyhit");
+        var direct=new Array(0,1,2,3);
+        var ybullet=new Array();
+        var gbullet=new Array();
+        var machineBullets=new Array();
+        var walls=new Array();
+        var machinetanks= new Array();
+        var e=0;
+        var g=0;
+        var ehitnum=0;
+        var ghitnum=0;
+        var my=document.querySelector("canvas");
+        var br=my.getContext("2d");
+        
+        //*********************坦克初始化
+        var enemytank=new tank(0,400,direct,"#0FF");
+        var herotank=new tank(0,50,direct,"#ff5");
+        //人机坦克
+        for(let i=0;i<6;i++){
+        var smachinetank = new machinetank(450,(i+1)*50,1,"#fa5");
+        machinetanks[i] = smachinetank;
+        drawtank(machinetanks[i]);
+        // 让敌人的坦克动起来
+        var times=setInterval("machinetanks["+i+"].run()",100)
+    }
+        //*********************墙的初始化
+            for(var i=1;i<15;i++){
+                if(i==8 || i==7){
+                    var swall=new wall(200,34*i,"#f55");
+                }else{ 
+                    var swall=new wall(200,34*i,"#999");
+                }
+                walls.push(swall);
+            }  
+
+            for(var i=0;i<16;i++){
+                if(i!=8&&i!=9&&i!=10)
+            var swall=new wall(300,34*i,"#f55");
+                walls.push(swall);
+            } 
+            
+            var swall=new wall(0,200,"#f55");  
+            walls.push(swall);
+            var swall=new wall(0,300,"#f55");  
+            walls.push(swall);   
+            var swall=new wall(34,200,"#999");  
+            walls.push(swall);
+            var swall=new wall(34,300,"#999");  
+            walls.push(swall);
+              
+            var swall=new wall(400,50,"#999");
+            walls.push(swall);
+            var swall=new wall(400,235,"#999");
+            walls.push(swall);
+            var swall=new wall(400,269,"#999");
+            walls.push(swall);
+            var swall=new wall(400,450,"#999");
+            walls.push(swall);
+            //*************************************************
+        drawtank(herotank);
+        drawtank(enemytank);
+
+    function flashMap(){
+        br.clearRect(0,0,my.width,my.height);
+        // for(let i=0;i<6;i++){
+        //     machinetanks[i].run();
+        // }
+        //子弹是否存在
+        gbullet.forEach(function(item){
+            isHitWall(item,walls);
+            isHitTank(item,herotank);
+            machinetanks.forEach(smachinetank=>{
+                isHitTank(item,smachinetank);
+            })
+            if(item.islive==true&&enemytank.islive==true){
+                drawbullet(item);
+            }
+        });
+
+        ybullet.forEach(function(item){
+            isHitWall(item,walls);
+            isHitTank(item,enemytank);
+            machinetanks.forEach(smachinetank=>{
+                isHitTank(item,smachinetank);
+            })
+            if(item.islive==true&&herotank.islive==true){
+                drawbullet(item);
+            }
+        });
+
+        machineBullets.forEach(item=>{
+            isHitWall(item,walls);
+            isHitTank(item,enemytank);
+            isHitTank(item,herotank);
+            if(item.islive){
+                drawbullet(item);
+            }
+        })
+        //判断坦克是否存在
+        if(herotank.islive==true){
+            drawtank(herotank);
+        }
+        if(enemytank.islive==true){
+            drawtank(enemytank);
+        }
+        machinetanks.forEach(smachinetank=>{
+            if(smachinetank.islive==true){
+            drawtank(smachinetank);
+        }
+        })
+        //画地图
+        drawmap(walls);
+    }
+    
+function changeDirect(){
+var keycode = event.keyCode;
+switch(keycode){
+    case 38:enemytank.moveUp(); break;
+    case 87:herotank.moveUp(); break;
+    case 39:enemytank.moveRight();break;
+    case 68:herotank.moveRight();break;
+    case 40:enemytank.moveDown();break;
+    case 83:herotank.moveDown();break;
+    case 37:enemytank.moveLeft();break;
+    case 65:herotank.moveLeft();break;
+    case 13:enemytank.shot(13);break;
+    case 32:herotank.shot(32);break;
+}
+flashMap();
+}
+
+
+    window.setInterval("flashMap()",100);
+    </script>
+
+</html>
